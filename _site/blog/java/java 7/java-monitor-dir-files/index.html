@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/assets/ico/favicon.ico">
+
+    <title>YUNSHUI - 使用Java监控操作系统目录或文件变化</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/assets/css/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/assets/css/style.css" rel="stylesheet">
+    <link href="/assets/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <!--<link rel="stylesheet" href="/css/main.css">-->
+
+
+    <!-- Just for debugging purposes. Don't actually copy this line! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <script src="/assets/js/modernizr.js"></script>
+</head>
+
+    <body>
+        <!-- Fixed navbar -->
+<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">YUNSHUI</a>
+    </div>
+    <div class="navbar-collapse collapse navbar-right">
+      <ul class="nav navbar-nav">
+        <li ><a href="/">文章</a></li>
+        <li ><a href="/category/">分类</a></li>
+        <li ><a href="/portfolio/">照片</a></li>
+        <li ><a href="/about/">关于</a></li>
+        <!-- <li ><a href="/contact/">CONTACT</a></li> -->
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div>
+</div>
+
+
+            <div class="container mtb">
+    <div class="row">
+        <! -- SINGLE POST -->
+        <div class="col-lg-8">
+            <! -- Blog Post  -->
+<!--
+            <p><img class="img-responsive" src="/assets/img/blog/"></p>
+-->
+            <a href="/blog/java/java%207/java-monitor-dir-files"><h3 class="ctitle">使用Java监控操作系统目录或文件变化</h3></a>
+            <p><csmall>Apr 25, 2013. | By: Admin</csmall></p>
+              
+            <h4 id="section">如何监测目录或文件变化？</h4>
+
+<p>监听文件更新在实际项目开发中比较常见，一般常规的做法就是定时的去查看文件或目录是否发生变化，即采用轮询的思路。但这样会产生的问题就是如果目录或文件根本没有发生任何变化，则将大大消耗系统的资源。为了避免不必要的开销，必须调用底层系统的API来完成我们的需求。<!--more--></p>
+
+<p>但Java调用底层系统API必须使用JNI的方式，那是不是已经有开源的库实现了我们的需求呢？答案是肯定的，我们没有必要重复的去造轮子，奉行拿来主义即可。<a href="https://jpathwatch.wordpress.com/">jpathwatch</a>是一个监测目录或文件改变的Java库，它使用本地系统平台的函数来完成，避免不必要的轮询。该库主要针对目录的如下事件进行监听：</p>
+
+<ul>
+  <li>文件创建和删除</li>
+  <li>文件修改</li>
+  <li>文件重命名</li>
+  <li>修改子目录（采用递递归监测方式）</li>
+  <li>非法操作（监测的目录不可达）</li>
+</ul>
+
+<p>它目前所支持的平台如下：</p>
+
+<ul>
+  <li>Windows (Windows 2000, XP, Vista, 7, 32bit/64bit)</li>
+  <li>Linux (x86, 32bit/64bit)</li>
+  <li>Mac OS X　(x86, 32bit/64bit, tested on 10.5)　(PPC, tested on 10.4)</li>
+  <li>FreeBSD (x86, 32bit)</li>
+</ul>
+
+<p>JDK最低要求为5，从整体上看该库具有高可用性，但实际开发时经常出现不可预料的问题，可能是系统资源不够或平台的兼容性等，崩溃性事件经常发生。</p>
+
+<h4 id="javawatch">难道Java就没有内置的watch库吗？</h4>
+
+<p>其实很多的库开始时是开源的，然后Java开发者看到这个库不错，就集成到标准JDK中，该库也是如此。Java7 java.nio.file库提供了文件改变通知API即Watch Service API。此API可用Watch Service注册一个或多个目录，然后通知一个文件创建、删除、修改事件给注册process。注册process使用一个线程去监测并处理任何已注册的文件事件。基本步骤如下：</p>
+
+<ul>
+  <li>针对需监听文件系统创建WatchService“watcher”；</li>
+  <li>对每个目录注册到watcher，注册时指定所通知事件。对于每个目录将获得一个WatchKey实例；</li>
+  <li>实现一个无限循环等待事件发生，当事件发生时，注册的key触发并放置到watcher队列中；</li>
+  <li>从watcher队列获取key（可从key中获得文件名字）；</li>
+  <li>对于key获取每一个等待事件和处理流程；</li>
+  <li>重置key去等待文件事件；</li>
+  <li>关闭service。当线程退出或关闭（closed方法），watch service退出。</li>
+</ul>
+
+<p>示例代码如下：</p>
+
+<ol>
+  <li>watch函数</li>
+</ol>
+<pre><code>
+    public void watch() {
+      WatchService watchService = FileSystems.getDefault().newWatchService();
+      name.pachler.nio.file.Path wachedPath = Paths.get(aDirPath);
+      try {
+        WatchKey key = wachedPath.register(watchService,
+          StandardWatchEventKind.ENTRY_CREATE, 
+          StandardWatchEventKind.ENTRY_DELETE,
+          StandardWatchEventKind.ENTRY_MODIFY);
+      } catch (UnsupportedOperationException uox) {
+      } catch (IOException iox) { }
+      Thread thread = new Thread() {
+        @Override
+        public void run() {
+          try {
+        processEvents();
+          } catch (IOException e) { }
+        }
+      };
+      thread.start();
+    }
+</code></pre>
+
+<ol>
+  <li>处理事件函数</li>
+</ol>
+<pre><code>
+    public void processEvents() {
+      while(true){
+        WatchKey signalledKey; //wait for key to be signaled
+        try {
+          signalledKey = watchService.take();
+        } catch (InterruptedException ix){
+          continue; //ignore being interrupted
+        } catch (ClosedWatchServiceException cwse){
+          break; // other thread closed watch service
+        }
+        // get watch events of events from key
+        List&lt;WatchEvent&lt;?&gt;&gt; watchEvents = signalledKey.pollEvents();
+        // VERY IMPORTANT! call reset() AFTER pollEvents() to allow the
+        // key to be reported again by the watch service
+        signalledKey.reset();
+        for(WatchEvent event : watchEvents){
+          name.pachler.nio.file.Path context = (name.pachler.nio.file.Path)event.context();
+          String enventFileName = context.toString();
+          if(enventFileName.equals("watch_file_name")) {
+            if(event.kind() == StandardWatchEventKind.ENTRY_CREATE) {
+            } else if(event.kind() == StandardWatchEventKind.ENTRY_DELETE) {
+            } else if (event.kind() == StandardWatchEventKind.ENTRY_MODIFY) {
+            } else if(event.kind() == StandardWatchEventKind.OVERFLOW) {
+            }
+          }
+        }
+      }
+    }
+</code></pre>
+
+
+
+            <div class="spacing"></div>
+            <!-- <h6>SHARE:</h6>
+            <p class="share">
+                <a href="#"><i class="fa fa-twitter"></i></a>
+                <a href="#"><i class="fa fa-facebook"></i></a>
+                <a href="#"><i class="fa fa-tumblr"></i></a>
+                <a href="#"><i class="fa fa-google-plus"></i></a>		 		
+            </p> -->
+        </div><! --/col-lg-8 -->
+        
+        <div class="col-lg-4">
+    <h4>关于作者</h4>
+    <div class="hline"></div>
+        <p>
+            <table><tr>
+              <td><img src="/assets/img/me_60x60.jpg" alt="ME" width="60px" height="60px"></td>
+              <td style="padding:5px">全栈工程师，专注于模块化、高性能、可扩展、跨平台软件设计与研发...<a href="/about/">More</a></td>
+            </tr></table>
+        </p>
+    <div class="spacing"></div>
+    <h4>订阅</h4>
+    <div class="hline"></div>
+        <p>
+            <p class="rss-subscribe">通过<a href="/feed.xml">RSS</a>订阅我的博客.</p>
+        </p>
+    <div class="spacing"></div>
+    <h4>分类</h4>
+    <div class="hline"></div>
+    
+        <p>
+            <a href="/category/#java"><i class="fa fa-angle-right"></i> Java</a>
+            <span class="badge badge-theme pull-right">1</span>
+        </p>
+    
+        <p>
+            <a href="/category/#java 7"><i class="fa fa-angle-right"></i> Java 7</a>
+            <span class="badge badge-theme pull-right">1</span>
+        </p>
+    
+
+    <div class="spacing"></div>
+
+    <h4>最近文章</h4>
+    <div class="hline"></div>
+        <ul class="popular-posts">
+             
+                <li>
+<!--
+                    <a href="/blog/java/java%207/java-monitor-dir-files"><img src="/assets/img/blog/thumbs/" alt="Popular Post"></a>
+-->
+                    <p><a href="/blog/java/java%207/java-monitor-dir-files">使用Java监控操作系统目录或文件变化</a></p>
+                <em>Posted on 25 Apr 2013</em>
+            </li>
+             
+        </ul>
+
+    <div class="spacing"></div>
+
+    <h4>标签</h4>
+    <div class="hline"></div>
+    <p>
+    
+            <a class="btn btn-theme" href="/category/#java" role="button">Java (1)</a>	         
+        
+            <a class="btn btn-theme" href="/category/#java 7" role="button">Java 7 (1)</a>	         
+        
+    </p>
+</div>
+
+
+    </div><! --/row -->
+</div><! --/container -->
+
+
+        <div id="footerwrap">
+    <div class="container">
+        <div class="row">
+            <!-- 
+            <h4>About</h4>
+            <div class="hline-w"></div>
+            -->
+           <p align="center"> YUNSHUI &copy; 2015, use the template of <a href="http://ojs.xyz/solid-jekyll" target="_blank" >solid jekyll</a>.</p>
+        </div><! --/row -->
+    </div><! --/container -->
+</div><! --/footerwrap -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script src="/assets/js/bootstrap.min.js"></script>
+<script src="/assets/js/retina-1.1.0.js"></script>
+<script src="/assets/js/jquery.hoverdir.js"></script>
+<script src="/assets/js/jquery.hoverex.min.js"></script>
+<script src="/assets/js/jquery.prettyPhoto.js"></script>
+<script src="/assets/js/jquery.isotope.min.js"></script>
+<script src="/assets/js/custom.js"></script>
+
+<script>
+// Portfolio
+(function($) {
+	"use strict";
+	var $container = $('.portfolio'),
+		$items = $container.find('.portfolio-item'),
+		portfolioLayout = 'fitRows';
+		
+		if( $container.hasClass('portfolio-centered') ) {
+			portfolioLayout = 'masonry';
+		}
+				
+		$container.isotope({
+			filter: '*',
+			animationEngine: 'best-available',
+			layoutMode: portfolioLayout,
+			animationOptions: {
+			duration: 750,
+			easing: 'linear',
+			queue: false
+		},
+		masonry: {
+		}
+		}, refreshWaypoints());
+		
+		function refreshWaypoints() {
+			setTimeout(function() {
+			}, 1000);   
+		}
+				
+		$('nav.portfolio-filter ul a').on('click', function() {
+				var selector = $(this).attr('data-filter');
+				$container.isotope({ filter: selector }, refreshWaypoints());
+				$('nav.portfolio-filter ul a').removeClass('active');
+				$(this).addClass('active');
+				return false;
+		});
+		
+		function getColumnNumber() { 
+			var winWidth = $(window).width(), 
+			columnNumber = 1;
+		
+			if (winWidth > 1200) {
+				columnNumber = 5;
+			} else if (winWidth > 950) {
+				columnNumber = 4;
+			} else if (winWidth > 600) {
+				columnNumber = 3;
+			} else if (winWidth > 400) {
+				columnNumber = 2;
+			} else if (winWidth > 250) {
+				columnNumber = 1;
+			}
+				return columnNumber;
+			}       
+			
+			function setColumns() {
+				var winWidth = $(window).width(), 
+				columnNumber = getColumnNumber(), 
+				itemWidth = Math.floor(winWidth / columnNumber);
+				
+				$container.find('.portfolio-item').each(function() { 
+					$(this).css( { 
+					width : itemWidth + 'px' 
+				});
+			});
+		}
+		
+		function setPortfolio() { 
+			setColumns();
+			$container.isotope('reLayout');
+		}
+			
+		$container.imagesLoaded(function () { 
+			setPortfolio();
+		});
+		
+		$(window).on('resize', function () { 
+		setPortfolio();          
+	});
+})(jQuery);
+</script>
+    </body>
+</html>
